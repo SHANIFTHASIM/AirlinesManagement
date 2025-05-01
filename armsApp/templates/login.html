@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block pageContent %}
+<style>
+    body {
+        background-image: url('{% static "assets/default/img/wallpaper.jpg" %}');
+        background-repeat: no-repeat;
+        background-size: cover;
+    }
+    main {
+        height: 100%;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: auto;
+    }
+    #logo-img {
+        height: 11em;
+        width: 26em;
+    }
+</style>
+<div class="d-flex flex-column w-100 justify-content-center align-items-center">
+    <div class="col-lg-4 col-md-6 col-sm-12 col-xs-12">
+        <div class="card card-default rounded-0 shadow">
+            <div class="card-header">
+                <h4 class="card-title"><b>Login</b></h4>
+            </div>
+            <div class="card-body">
+                <div class="container-fluid">
+                    <form id="login-form" action="" method="POST">
+                        {% csrf_token %}
+                        <div class="mdc-layout-grid">
+                            <div class="mdc-layout-grid__inner">
+                                <div class="form-group mb-3">
+                                    <label for="username" class="control-label">Username</label>
+                                    <input type="text" class="form-control rounded-0" name="username" id="username" required="required">
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label for="password" class="control-label">Password</label>
+                                    <input type="password" class="form-control rounded-0" name="password" id="password" required="required">
+                                </div>
+                                <div class="form-group mb-3">
+                                    <div class="d-flex w-100 justify-content-between align-items-center">
+                                        <div class="col-md-4">
+                                            <a href="{% url 'public-page' %}">Go Back</a>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <a href="{% url 'register-page' %}">Don't have an account</a>
+                                        </div>
+                                        <button class="btn btn-sm rounded-0 btn-primary">
+                                            Login
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                    <!-- Placeholder for error messages -->
+                    <div id="login-errors"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock pageContent %}
+
+{% block ScriptBlock %}
+<script>
+    // Helper function to get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    $(function() {
+        $('#login-form').submit(function(e) {
+            e.preventDefault();
+            var _this = $(this);
+            $('.err-msg').remove();
+            var el = $('<div>').addClass("alert alert-danger err-msg").hide();
+            if (_this[0].checkValidity() == false) {
+                _this[0].reportValidity();
+                return false;
+            }
+            start_loader();
+            $.ajax({
+                url: "{% url 'token_obtain_pair' %}",
+                method: 'POST',
+                data: {
+                    username: $('#username').val(),
+                    password: $('#password').val(),
+                },
+                dataType: 'json',
+                headers: {
+                    "X-CSRFToken": getCookie('csrftoken')
+                },
+                success: function(resp) {
+                    console.log("Token response:", resp);
+                    if (resp.access && resp.refresh) {
+                        // Save tokens to localStorage
+                        localStorage.setItem("access_token", resp.access);
+                        localStorage.setItem("refresh_token", resp.refresh);
+                        // Now call the bridging endpoint to create a Django session
+                        $.ajax({
+                            url: "{% url 'jwt-session-login' %}",
+                            method: 'POST',
+                            data: { token: resp.access },
+                            headers: { "X-CSRFToken": getCookie('csrftoken') },
+                            dataType: 'json',
+                            success: function(bridgeResp) {
+                                console.log("Bridge response:", bridgeResp);
+                                if (bridgeResp.status === 'success') {
+                                    // Redirect to home page
+                                    location.href = "{% url 'face-verification' %}";
+                                } else {
+                                    el.text(bridgeResp.msg || "Session bridging failed.");
+                                    _this.prepend(el);
+                                    el.show('slow');
+                                }
+                                end_loader();
+                            },
+                            error: function(err) {
+                                console.error("Bridge AJAX error:", err);
+                                el.text("Session bridging error.");
+                                _this.prepend(el);
+                                el.show('slow');
+                                end_loader();
+                            }
+                        });
+                    } else {
+                        el.text("Login failed. Check your credentials.");
+                        _this.prepend(el);
+                        el.show('slow');
+                        end_loader();
+                    }
+                },
+                error: function(err) {
+                    console.error("AJAX error:", err);
+                    el.text("An error occurred during login.");
+                    _this.prepend(el);
+                    el.show('slow');
+                    end_loader();
+                }
+            });
+        });
+    });
+</script>
+{% endblock ScriptBlock %}

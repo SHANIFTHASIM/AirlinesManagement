@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block pageContent %}
+<style>
+    #video {
+        width: 100%;
+        max-width: 500px;
+        border: 2px solid #ccc;
+        border-radius: 10px;
+    }
+    #verify-button {
+        margin-top: 10px;
+    }
+</style>
+
+<div class="text-center py-5">
+    <h2>Face Verification</h2>
+    <video id="video" autoplay></video><br>
+    <button id="verify-button" class="btn btn-primary">Verify Face</button>
+    <div id="face-status" class="mt-3"></div>
+</div>
+{% endblock %}
+
+{% block ScriptBlock %}
+<script>
+    const video = document.getElementById('video');
+    const statusDiv = document.getElementById('face-status');
+
+    // Start webcam
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+            video.srcObject = stream;
+        }).catch(err => {
+            statusDiv.innerText = "Cannot access webcam.";
+            console.error(err);
+        });
+
+    // Convert image to base64 for demo
+    function captureImageFromVideo(video) {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        return canvas.toDataURL('image/jpeg');
+    }
+
+    // Submit image for verification
+    document.getElementById('verify-button').addEventListener('click', function () {
+        const image_data = captureImageFromVideo(video);
+
+        fetch("{% url 'verify-face' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({ image: image_data })
+        }).then(response => response.json())
+          .then(data => {
+            if (data.status === 'success') {
+                statusDiv.innerText = "Face Verified! Redirecting...";
+                setTimeout(() => {
+                    window.location.href = "{% url 'home-page' %}";
+                }, 1500);
+            } else {
+                statusDiv.innerText = "Verification failed.";
+            }
+        }).catch(error => {
+            console.error("Verification error:", error);
+            statusDiv.innerText = "An error occurred.";
+        });
+    });
+
+    // CSRF helper
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}

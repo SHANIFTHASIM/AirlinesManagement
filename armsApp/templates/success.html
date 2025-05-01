@@ -1,0 +1,73 @@
+<!-- success.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Payment Successful</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background: #f9fafb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .card {
+            background: white;
+            padding: 2rem 3rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            max-width: 480px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            color: #10b981;
+        }
+
+        p {
+            margin: 0.5rem 0;
+            font-size: 1rem;
+            color: #374151;
+        }
+
+        strong {
+            color: #111827;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 1.5rem;
+            padding: 0.5rem 1.25rem;
+            background-color: #3b82f6;
+            color: white;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s ease;
+        }
+
+        a:hover {
+            background-color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🎉 Payment Successful!</h1>
+        <p><strong>Payment ID:</strong> {{ payment_id }}</p>
+        <p><strong>Payer ID:</strong> {{ payer_id }}</p>
+        <p><strong>Amount:</strong> {{ amount }} {{ currency }}</p>
+        <p><strong>Status:</strong> {{ status|title }}</p>
+
+        <a href="/">Go back to Home</a>
+    </div>
+</body>
+</html>
